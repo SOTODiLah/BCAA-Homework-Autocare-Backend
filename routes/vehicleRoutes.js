@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const vehicleDao = require("../dao/vehicleDao");
+const bookingDao = require("../dao/bookingDao");
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -144,6 +145,15 @@ router.delete("/:id", (req, res) => {
   if (!existing) {
     return res.status(404).json({
       errors: [{ code: "vehicleNotFound", message: "Vehicle not found.", params: { id: req.params.id } }],
+      warnings,
+    });
+  }
+
+  // Block deletion if any bookings reference this vehicle
+  const relatedBookings = bookingDao.getAll({ vehicleId: req.params.id });
+  if (relatedBookings.length > 0) {
+    return res.status(409).json({
+      errors: [{ code: "vehicleHasBookings", message: "Vehicle cannot be deleted because it has existing bookings.", params: { vehicleId: req.params.id } }],
       warnings,
     });
   }
